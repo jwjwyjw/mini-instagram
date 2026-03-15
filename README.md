@@ -1,4 +1,5 @@
 # Mini Instagram
+https://mini-ig.netlify.app/
 
 A photo sharing app built with React 19, TypeScript, and TanStack Query. Demonstrates caching, error resilience, performance optimization, and accessibility.
 
