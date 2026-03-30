@@ -57,11 +57,23 @@ export function useCreatePost() {
   
   return useMutation({
     mutationFn: (data: CreatePostData) => apiClient.createPost(data),
-    onSuccess: (newPost) => {
-      // Optimistically update the posts cache
+    onMutate: async (newPostData) => {
+      // Save previous data for rollback
+      const previousData = queryClient.getQueryData(['posts']);
+
+      // Create optimistic post
+      const optimisticPost = {
+        id: 'temp-' + Date.now(),
+        author: newPostData.author,
+        caption: newPostData.caption,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+      };
+      
+      // Update cache immediately
       queryClient.setQueryData(['posts'], (oldData: any) => {
         if (!oldData) return oldData;
-        
+
         return {
           ...oldData,
           pages: oldData.pages.map((page: any, index: number) => {
@@ -69,7 +81,7 @@ export function useCreatePost() {
             if (index === 0) {
               return {
                 ...page,
-                items: [newPost, ...page.items],
+                items: [optimisticPost, ...page.items],
               };
             }
             return page;
@@ -77,11 +89,22 @@ export function useCreatePost() {
         };
       });
       
-      // Also set the individual post cache
-      queryClient.setQueryData(['post', newPost.id], newPost);
-      
-      // Invalidate to ensure consistency
+      // Return previous data for rollback
+      return { previousData };
+    },
+    
+    onSuccess: (realPost) => {
+      // Update with real data when server responds
       queryClient.invalidateQueries({ queryKey: ['posts'] });
+    },
+
+    onError: (error, variables, context) => {
+      console.log('Error occurred, rolling back:', error.message);
+      
+      // Restore previous data (remove optimistic post)
+      if (context?.previousData) {
+        queryClient.setQueryData(['posts'], context.previousData);
+      }
     },
   });
 }
