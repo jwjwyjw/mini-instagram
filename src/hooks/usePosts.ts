@@ -93,12 +93,12 @@ export function useCreatePost() {
       return { previousData };
     },
     
-    onSuccess: (realPost) => {
+    onSuccess: () => {
       // Update with real data when server responds
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     },
 
-    onError: (error, variables, context) => {
+    onError: (error, _variables, context) => {
       console.log('Error occurred, rolling back:', error.message);
       
       // Restore previous data (remove optimistic post)
